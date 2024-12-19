@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Online - Domande Chiuse</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    /* Aggiungi lo stile del popup come discusso precedentemente */
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .popup-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .popup-header {
+      font-size: 1.5em;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .popup-footer {
+      margin-top: 20px;
+    }
+
+    .close-btn {
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .close-btn:hover {
+      background-color: #357ae8;
+    }
+  </style>
+</head>
+<body class="bg-light">
+  <div class="container text-center mt-5">
+    <h1 class="display-4 text-primary">Domande Chiuse</h1>
+    <p class="lead">Rispondi alle domande e invia il quiz.</p>
+
+    <!-- Quiz Form -->
+    <div id="quiz-form"></div>
+
+    <button class="btn btn-primary mt-3" onclick="downloadAnswers()">Invia Risposte</button>
+
+    <!-- Popup di Conferma -->
+    <div class="popup-overlay" id="custom-popup">
+      <div class="popup-content">
+        <div class="popup-header" id="popup-title"></div>
+        <div id="popup-message"></div>
+        <button class="close-btn" onclick="closePopup()">Chiudi</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Funzione per mostrare il popup
+    function showPopup(title, message) {
+      document.getElementById('popup-title').textContent = title;
+      document.getElementById('popup-message').textContent = message;
+      document.getElementById('custom-popup').style.display = 'flex';
+    }
+
+    // Funzione per chiudere il popup
+    function closePopup() {
+      document.getElementById('custom-popup').style.display = 'none';
+    }
+
+    // Funzione per generare e scaricare il file delle risposte
+    function downloadAnswers() {
+      // Raccogli le risposte
+      const answers = {};
+      const selects = document.querySelectorAll('.question-select');
+      
+      selects.forEach(select => {
+        answers[select.name] = select.value;
+      });
+
+      if (Object.keys(answers).length === 0 || Object.values(answers).includes('')) {
+        showPopup("Attenzione", "Devi rispondere a tutte le domande prima di inviare.");
+        return;
+      }
+
+      // Crea un contenuto del file
+      const date = new Date();
+      const timestamp = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}_${date.getHours().toString().padStart(2, '0')}-${date.getMinutes().toString().padStart(2, '0')}-${date.getSeconds().toString().padStart(2, '0')}`;
+      
+      let fileContent = `Risposte salvate il ${timestamp}:\n\n`;
+
+      Object.keys(answers).forEach((questionKey, index) => {
+        fileContent += `Domanda ${index + 1}: ${answers[questionKey]}\n`;
+      });
+
+      // Crea un file Blob con il contenuto
+      const blob = new Blob([fileContent], { type: 'text/plain' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `risultati_${timestamp}.txt`; // Il nome del file
+      link.click(); // Simula il click per scaricare
+
+      // Mostra popup di conferma
+      showPopup("Risposte Inviate", "Le tue risposte sono state salvate e puoi scaricare il file.");
+    }
+
+    // Funzione per caricare le domande dal quiz salvato
+    function loadQuiz() {
+      const quiz = JSON.parse(localStorage.getItem('selectedQuiz')); // Ottieni il quiz salvato in localStorage
+      if (!quiz || !quiz.questions) {
+        showPopup("Errore", "Nessun quiz trovato. Torna alla pagina principale.");
+        return;
+      }
+
+      const quizForm = document.getElementById('quiz-form');
+      quizForm.innerHTML = ''; // Pulisce il form esistente
+
+      quiz.questions.forEach((question, index) => {
+        // Crea un div per ogni domanda
+        const questionDiv = document.createElement('div');
+        questionDiv.classList.add('mb-3');
+        
+        // Crea l'elemento label
+        const label = document.createElement('label');
+        label.setAttribute('for', `question${index + 1}`);
+        label.classList.add('form-label');
+        label.textContent = `Domanda ${index + 1}: ${question.text}`;
+
+        // Crea l'elemento select (menu a tendina) per la risposta
+        const select = document.createElement('select');
+        select.id = `question${index + 1}`;
+        select.name = `question${index + 1}`;
+        select.classList.add('form-select', 'question-select');
+        
+        question.options.forEach(option => {
+          const optionElement = document.createElement('option');
+          optionElement.value = option;
+          optionElement.textContent = option;
+          select.appendChild(optionElement);
+        });
+
+        questionDiv.appendChild(label);
+        questionDiv.appendChild(select);
+
+        quizForm.appendChild(questionDiv);
+      });
+    }
+
+    // Carica il quiz quando la pagina è pronta
+    window.onload = loadQuiz;
+  </script>
+</body>
+</html>
